@@ -1,0 +1,218 @@
+openapi: 3.0.3
+info:
+  title: VemaFlow Spring API
+  version: 0.1.0
+  description: API do backend Spring (porta 8080) para Projetos, Tarefas e Comentários.
+servers:
+  - url: http://localhost:8080
+    description: Dev (Spring Boot)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Projeto:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        uuid: { type: string }
+        nome: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        timesResponsaveis: { type: array, items: { type: string } }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+    ProjetoRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+        timesResponsaveisIds: { type: array, items: { type: integer, format: int64 } }
+    Tarefa:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        titulo: { type: string }
+        descricao: { type: string }
+        status: { type: string, enum: [NAO_INICIADO, EM_ANDAMENTO, CONCLUIDA, CANCELADA] }
+        projetoId: { type: integer, format: int64 }
+        projeto: { $ref: '#/components/schemas/Projeto' }
+        prioridade: { type: string, enum: [BAIXA, MEDIA, ALTA, CRITICA] }
+        dataCriacao: { type: string, format: date }
+        dataAtualizacao: { type: string, format: date }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+        codigo: { type: string }
+        nomeUsuario: { type: string }
+        timeUsuario: { type: string }
+        progressoPercent: { type: integer, format: int32, description: "0..100 calculado pelas subtarefas" }
+    TarefaRequest:
+      type: object
+      properties:
+        titulo: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        projetoId: { type: integer, format: int64 }
+        prioridade: { type: string }
+        nomeUsuario: { type: string }
+        timeUsuario: { type: string }
+    Comentario:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        autorNome: { type: string }
+        conteudo: { type: string }
+        criadoEm: { type: string, format: date-time }
+    ComentarioRequest:
+      type: object
+      required: [conteudo]
+      properties:
+        conteudo: { type: string }
+        autorNome: { type: string }
+    Marco:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        projetoId: { type: integer, format: int64 }
+        titulo: { type: string }
+        data: { type: string, format: date }
+        responsavelNome: { type: string }
+        lembreteDiasAntes: { type: integer, format: int32 }
+    MarcoRequest:
+      type: object
+      required: [titulo, data]
+      properties:
+        titulo: { type: string }
+        data: { type: string, format: date }
+        responsavelNome: { type: string }
+        lembreteDiasAntes: { type: integer, format: int32 }
+    Subtarefa:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        titulo: { type: string }
+        status: { type: string, enum: [NAO_INICIADO, EM_ANDAMENTO, CONCLUIDA, CANCELADA] }
+        ordem: { type: integer, format: int32 }
+    SubtarefaRequest:
+      type: object
+      properties:
+        titulo: { type: string }
+        status: { type: string }
+        ordem: { type: integer, format: int32 }
+    SlaStatus:
+      type: object
+      properties:
+        status: { type: string }
+        tempoSegundos: { type: integer, format: int64 }
+        tempoFormatado: { type: string }
+    TarefaSla:
+      type: object
+      properties:
+        tarefaId: { type: integer, format: int64 }
+        tituloTarefa: { type: string }
+        statusAtual: { type: string }
+        tempoTotalSegundos: { type: integer, format: int64 }
+        tempoTotalFormatado: { type: string }
+        temposPorStatus:
+          type: array
+          items: { $ref: '#/components/schemas/SlaStatus' }
+    Dashboard:
+      type: object
+      properties:
+        totalTarefas: { type: integer, format: int64 }
+        tarefasPendentes: { type: integer, format: int64 }
+        tarefasEmAndamento: { type: integer, format: int64 }
+        tarefasConcluidas: { type: integer, format: int64 }
+        tarefasVencidas: { type: integer, format: int64 }
+        leadTimeMediaDias: { type: number, format: double }
+        cycleTimeMediaDias: { type: number, format: double }
+        wip: { type: integer, format: int64 }
+    DashboardExecutivoItem:
+      type: object
+      properties:
+        projetoId: { type: integer, format: int64 }
+        projetoNome: { type: string }
+        totalTarefas: { type: integer, format: int64 }
+        tarefasPendentes: { type: integer, format: int64 }
+        tarefasEmAndamento: { type: integer, format: int64 }
+        tarefasConcluidas: { type: integer, format: int64 }
+        tarefasVencidas: { type: integer, format: int64 }
+        rag: { type: string, enum: [R, A, G] }
+    TarefaAnexo:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        nomeArquivo: { type: string }
+        contentType: { type: string }
+        tamanho: { type: integer, format: int64 }
+        criadoEm: { type: string, format: date-time }
+paths:
+  /api/projetos:
+    get:
+      summary: Listar projetos
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Projeto' }
+    post:
+      summary: Criar projeto
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjetoRequest' }
+      responses:
+        '200':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Projeto' }
+  /api/projetos/{id}:
+    get:
+      summary: Buscar projeto por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Projeto' } } } }
+        '404': { description: Não encontrado }
+    put:
+      summary: Atualizar projeto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjetoRequest' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Projeto' } } } }
+        '404': { description: Não encontrado }
+    delete:
+      summary: Remover projeto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removido }

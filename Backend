@@ -1,0 +1,174 @@
+DOCUMENTAÇÃO DO PROJETO VEIMAFLOW
+===============================
+
+📌 DESCRIÇÃO GERAL
+-------------------
+VemaFlow é um sistema de gestão de tarefas e projetos com autenticação via JWT. Ele permite que usuários se cadastrem, façam login, criem projetos e tarefas, vinculem tarefas a projetos e usuários, filtrem por status e atualizem o progresso das atividades.
+
+O sistema foi desenvolvido com Spring Boot, JPA, PostgreSQL e está preparado para integração com front-end e testes via Postman.
+
+---
+
+✅ FUNCIONALIDADES IMPLEMENTADAS
+--------------------------------
+- Autenticação com JWT
+- Cadastro de usuários diretamente no banco
+- Login e geração de token JWT
+- Proteção de rotas com filtro JWT
+- Criação, listagem, atualização e remoção de projetos
+- Criação, listagem, atualização e remoção de tarefas
+- Vinculação de tarefas a projetos e usuários
+- Filtro de tarefas e projetos por status
+- Atualização de status da tarefa via PATCH
+- Tratativa global de erros com mensagens claras
+
+---
+
+🔐 AUTENTICAÇÃO
+---------------
+- Endpoint: POST /api/auth/login
+- Corpo:
+  {
+    "email": "usuario@exemplo.com",
+    "senha": "123456"
+  }
+- Retorno:
+  {
+    "usuario": { ... },
+    "token": "JWT_TOKEN"
+  }
+
+Token deve ser enviado em todas as requisições protegidas via header:
+Authorization: Bearer JWT_TOKEN
+
+---
+
+👤 USUÁRIOS
+-----------
+Usuários são cadastrados diretamente no banco com os campos:
+- nome
+- email
+- cargo
+- senha
+
+---
+
+📁 PROJETOS
+-----------
+### GET /api/projetos
+- Lista todos os projetos
+
+### GET /api/projetos/{id}
+- Busca projeto por ID
+
+### POST /api/projetos
+- Cria novo projeto
+- Corpo:
+  {
+    "nome": "Projeto X",
+    "descricao": "Descrição",
+    "status": "Em andamento",
+    "dataInicio": "2025-11-01",
+    "dataFim": "2025-12-01"
+  }
+
+### PUT /api/projetos/{id}
+- Atualiza projeto existente
+
+### DELETE /api/projetos/{id}
+- Remove projeto por ID
+
+### GET /api/projetos/status/{status}
+- Filtra projetos por status
+
+---
+
+📝 TAREFAS
+----------
+### GET /api/tarefas
+- Lista todas as tarefas
+
+### GET /api/tarefas/{id}
+- Busca tarefa por ID
+
+### POST /api/tarefas
+- Cria nova tarefa
+- Corpo:
+  {
+    "titulo": "Criar DTO",
+    "descricao": "Implementar estrutura",
+    "prioridade": "Alta",
+    "status": "PENDENTE",
+    "projetoId": 1,
+    "usuarioId": 1
+  }
+
+### PUT /api/tarefas/{id}
+- Atualiza tarefa existente
+
+### PATCH /api/tarefas/{id}/status
+- Atualiza apenas o status da tarefa
+- Corpo:
+  {
+    "status": "CONCLUIDA"
+  }
+
+### DELETE /api/tarefas/{id}
+- Remove tarefa por ID
+
+### GET /api/tarefas/status/{status}
+- Filtra tarefas por status
+
+---
+
+⚠️ TRATATIVA DE ERROS
+---------------------
+Erros como "não encontrado" são tratados com mensagens claras via `GlobalExceptionHandler`.
+
+Exemplo:
+- Se projeto não existe: "Projeto não encontrado com ID: X"
+- Se tarefa não existe: "Tarefa não encontrada com ID: X"
+
+---
+
+📦 ESTRUTURA DE DADOS
+---------------------
+### TarefaDTO
+- id, titulo, descricao, prioridade, status, projetoId, usuarioId, dataCriacao
+
+### ProjetoDTO
+- id, nome, descricao, status, dataInicio, dataFim
+
+### TarefaRequestDTO
+- titulo, descricao, prioridade, status, projetoId, usuarioId
+
+### ProjetoRequestDTO
+- nome, descricao, status, dataInicio, dataFim
+
+### TarefaStatusDTO
+- status
+
+---
+
+🛠️ TECNOLOGIAS USADAS
+----------------------
+- Java 17
+- Spring Boot
+- Spring Security
+- JPA / Hibernate
+- PostgreSQL
+- JWT (jjwt 0.11.5)
+- Postman (testes)
+- pgAdmin (visualização do banco)
+
+---
+
+📌 PRÓXIMOS PASSOS (SUGESTÕES)
+------------------------------
+- Listar tarefas por usuário
+- Contar tarefas por projeto
+- Criar enum para status e prioridade
+- Adicionar data de conclusão
+- Criar dashboard com métricas
+
+---

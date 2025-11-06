@@ -1,0 +1,712 @@
+openapi: 3.0.3
+info:
+  title: VemaFlow Spring API
+  version: 0.1.0
+  description: API do backend Spring (porta 8080) para Projetos, Tarefas e Comentários.
+servers:
+  - url: http://localhost:8080
+    description: Dev (Spring Boot)
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    Projeto:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        uuid: { type: string }
+        nome: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        timesResponsaveis: { type: array, items: { type: string } }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+    ProjetoRequest:
+      type: object
+      properties:
+        nome: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+        timesResponsaveisIds: { type: array, items: { type: integer, format: int64 } }
+    Tarefa:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        titulo: { type: string }
+        descricao: { type: string }
+        status: { type: string, enum: [NAO_INICIADO, EM_ANDAMENTO, CONCLUIDA, CANCELADA] }
+        projetoId: { type: integer, format: int64 }
+        projeto: { $ref: '#/components/schemas/Projeto' }
+        prioridade: { type: string, enum: [BAIXA, MEDIA, ALTA, CRITICA] }
+        dataCriacao: { type: string, format: date }
+        dataAtualizacao: { type: string, format: date }
+        dataInicio: { type: string, format: date }
+        dataFim: { type: string, format: date }
+        codigo: { type: string }
+        nomeUsuario: { type: string }
+        timeUsuario: { type: string }
+        progressoPercent: { type: integer, format: int32, description: "0..100 calculado pelas subtarefas" }
+    TarefaRequest:
+      type: object
+      properties:
+        titulo: { type: string }
+        descricao: { type: string }
+        status: { type: string }
+        projetoId: { type: integer, format: int64 }
+        prioridade: { type: string }
+        nomeUsuario: { type: string }
+        timeUsuario: { type: string }
+    Comentario:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        autorNome: { type: string }
+        conteudo: { type: string }
+        criadoEm: { type: string, format: date-time }
+    ComentarioRequest:
+      type: object
+      required: [conteudo]
+      properties:
+        conteudo: { type: string }
+        autorNome: { type: string }
+    Marco:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        projetoId: { type: integer, format: int64 }
+        titulo: { type: string }
+        data: { type: string, format: date }
+        responsavelNome: { type: string }
+        lembreteDiasAntes: { type: integer, format: int32 }
+    MarcoRequest:
+      type: object
+      required: [titulo, data]
+      properties:
+        titulo: { type: string }
+        data: { type: string, format: date }
+        responsavelNome: { type: string }
+        lembreteDiasAntes: { type: integer, format: int32 }
+    Subtarefa:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        titulo: { type: string }
+        status: { type: string, enum: [NAO_INICIADO, EM_ANDAMENTO, CONCLUIDA, CANCELADA] }
+        ordem: { type: integer, format: int32 }
+    SubtarefaRequest:
+      type: object
+      properties:
+        titulo: { type: string }
+        status: { type: string }
+        ordem: { type: integer, format: int32 }
+    SlaStatus:
+      type: object
+      properties:
+        status: { type: string }
+        tempoSegundos: { type: integer, format: int64 }
+        tempoFormatado: { type: string }
+    TarefaSla:
+      type: object
+      properties:
+        tarefaId: { type: integer, format: int64 }
+        tituloTarefa: { type: string }
+        statusAtual: { type: string }
+        tempoTotalSegundos: { type: integer, format: int64 }
+        tempoTotalFormatado: { type: string }
+        temposPorStatus:
+          type: array
+          items: { $ref: '#/components/schemas/SlaStatus' }
+    Dashboard:
+      type: object
+      properties:
+        totalTarefas: { type: integer, format: int64 }
+        tarefasPendentes: { type: integer, format: int64 }
+        tarefasEmAndamento: { type: integer, format: int64 }
+        tarefasConcluidas: { type: integer, format: int64 }
+        tarefasVencidas: { type: integer, format: int64 }
+        leadTimeMediaDias: { type: number, format: double }
+        cycleTimeMediaDias: { type: number, format: double }
+        wip: { type: integer, format: int64 }
+    DashboardExecutivoItem:
+      type: object
+      properties:
+        projetoId: { type: integer, format: int64 }
+        projetoNome: { type: string }
+        totalTarefas: { type: integer, format: int64 }
+        tarefasPendentes: { type: integer, format: int64 }
+        tarefasEmAndamento: { type: integer, format: int64 }
+        tarefasConcluidas: { type: integer, format: int64 }
+        tarefasVencidas: { type: integer, format: int64 }
+        rag: { type: string, enum: [R, A, G] }
+    TarefaAnexo:
+      type: object
+      properties:
+        id: { type: integer, format: int64 }
+        tarefaId: { type: integer, format: int64 }
+        nomeArquivo: { type: string }
+        contentType: { type: string }
+        tamanho: { type: integer, format: int64 }
+        criadoEm: { type: string, format: date-time }
+paths:
+  /api/projetos:
+    get:
+      summary: Listar projetos
+      security: [ { bearerAuth: [] } ]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Projeto' }
+    post:
+      summary: Criar projeto
+      security: [ { bearerAuth: [] } ]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjetoRequest' }
+      responses:
+        '200':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Projeto' }
+  /api/projetos/{id}:
+    get:
+      summary: Buscar projeto por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Projeto' } } } }
+        '404': { description: Não encontrado }
+    put:
+      summary: Atualizar projeto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ProjetoRequest' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Projeto' } } } }
+    delete:
+      summary: Remover projeto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removido }
+  /api/projetos/status/{status}:
+    get:
+      summary: Filtrar por status
+      parameters:
+        - in: path
+          name: status
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Projeto' }
+  /api/projetos/{id}/tarefas/quantidade:
+    get:
+      summary: Contar tarefas por projeto
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: integer, format: int64 } } } }
+  /api/tarefas:
+    get:
+      summary: Listar tarefas
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Tarefa' }
+    post:
+      summary: Criar tarefa
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaRequest' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+  /api/tarefas/{id}:
+    get:
+      summary: Buscar tarefa por ID
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+        '404': { description: Não encontrada }
+    put:
+      summary: Atualizar tarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/TarefaRequest' }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+    delete:
+      summary: Remover tarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removida }
+  /api/tarefas/{id}/status:
+    patch:
+      summary: Atualizar status da tarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: '#/components/schemas/Tarefa' } } } }
+  /api/tarefas/{tarefaId}/comentarios:
+    get:
+      summary: Listar comentários da tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Comentario' }
+    post:
+      summary: Criar comentário na tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ComentarioRequest' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Comentario' }
+  /api/projetos/{projetoId}/marcos:
+    get:
+      summary: Listar marcos do projeto
+      parameters:
+        - in: path
+          name: projetoId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Marco' }
+    post:
+      summary: Criar marco no projeto
+      parameters:
+        - in: path
+          name: projetoId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MarcoRequest' }
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Marco' }
+  /api/marcos/{id}:
+    put:
+      summary: Atualizar marco
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/MarcoRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Marco' }
+    delete:
+      summary: Remover marco
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removido }
+  /api/marcos/lembretes:
+    get:
+      summary: Listar lembretes de marcos próximos
+      description: Retorna marcos cujo prazo está dentro da janela de lembretes (configurada por diasLembrete de cada marco)
+      parameters:
+        - in: query
+          name: dias
+          required: false
+          schema: { type: integer, format: int32, default: 14 }
+          description: Janela de dias futuros a considerar (padrão 14)
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer, format: int64 }
+                    projetoId: { type: integer, format: int64 }
+                    titulo: { type: string }
+                    data: { type: string, format: date }
+                    responsavelNome: { type: string }
+                    diasRestantes: { type: integer, format: int32 }
+              examples:
+                lembretes:
+                  value:
+                    - id: 5
+                      projetoId: 2
+                      titulo: "Release 1.0"
+                      data: "2025-11-10"
+                      responsavelNome: "João Silva"
+                      diasRestantes: 9
+                    - id: 7
+                      projetoId: 3
+                      titulo: "Sprint Review"
+                      data: "2025-11-05"
+                      responsavelNome: "Maria Oliveira"
+                      diasRestantes: 4
+  /api/tarefas/{tarefaId}/subtarefas:
+    get:
+      summary: Listar subtarefas da tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Subtarefa' }
+    post:
+      summary: Criar subtarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubtarefaRequest' }
+      responses:
+        '201':
+          description: Criada
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Subtarefa' }
+  /api/subtarefas/{id}:
+    put:
+      summary: Atualizar subtarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/SubtarefaRequest' }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Subtarefa' }
+    delete:
+      summary: Remover subtarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removida }
+  /api/tarefas/{tarefaId}/dependencias:
+    get:
+      summary: Listar dependências da tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  bloqueia:
+                    type: array
+                    items: { type: integer, format: int64 }
+                  bloqueadoPor:
+                    type: array
+                    items: { type: integer, format: int64 }
+    post:
+      summary: Adicionar dependência (tarefa depende de outra)
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+        - in: query
+          name: dependeDeId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Adicionada }
+    delete:
+      summary: Remover dependência
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+        - in: query
+          name: dependeDeId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removida }
+  /api/tarefas/{id}/sla:
+    get:
+      summary: Obter SLA da tarefa
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TarefaSla' }
+              examples:
+                exemplo:
+                  value:
+                    tarefaId: 123
+                    tituloTarefa: "Implementar autenticação"
+                    statusAtual: "EM_ANDAMENTO"
+                    tempoTotalSegundos: 172800
+                    tempoTotalFormatado: "2d"
+                    temposPorStatus:
+                      - status: "NAO_INICIADO"
+                        tempoSegundos: 86400
+                        tempoFormatado: "1d"
+                      - status: "EM_ANDAMENTO"
+                        tempoSegundos: 86400
+                        tempoFormatado: "1d"
+  /api/tarefas/{tarefaId}/anexos:
+    get:
+      summary: Listar anexos da tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/TarefaAnexo' }
+    post:
+      summary: Enviar anexo para a tarefa
+      parameters:
+        - in: path
+          name: tarefaId
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Criado
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/TarefaAnexo' }
+  /api/anexos/{id}/download:
+    get:
+      summary: Baixar anexo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+  /api/anexos/{id}:
+    delete:
+      summary: Remover anexo
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: Removido }
+  /api/dashboard:
+    get:
+      summary: Obter métricas de dashboard
+      parameters:
+        - in: query
+          name: projetoId
+          required: false
+          schema: { type: integer, format: int64 }
+          description: Filtra métricas por projeto
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Dashboard' }
+              examples:
+                exemplo:
+                  value:
+                    totalTarefas: 120
+                    tarefasPendentes: 30
+                    tarefasEmAndamento: 50
+                    tarefasConcluidas: 38
+                    tarefasVencidas: 2
+                    leadTimeMediaDias: 5.4
+                    cycleTimeMediaDias: 3.2
+                    wip: 12
+  /api/dashboard/executivo:
+    get:
+      summary: Obter resumo executivo (R/A/G) por projeto
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/DashboardExecutivoItem' }
+              examples:
+                exemplo:
+                  value:
+                    - projetoId: 1
+                      projetoNome: "Projeto A"
+                      totalTarefas: 25
+                      tarefasPendentes: 5
+                      tarefasEmAndamento: 12
+                      tarefasConcluidas: 7
+                      tarefasVencidas: 1
+                      rag: "A"
+                    - projetoId: 2
+                      projetoNome: "Projeto B"
+                      totalTarefas: 10
+                      tarefasPendentes: 0
+                      tarefasEmAndamento: 2
+                      tarefasConcluidas: 8
+                      tarefasVencidas: 0
+                      rag: "G"
