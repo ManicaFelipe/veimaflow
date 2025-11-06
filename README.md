@@ -154,14 +154,14 @@ Abra o DevTools (F12) e veja a aba Console:
 ## 🎯 5. Estrutura de Pastas
 
 ```
-VemaFlow/
-├── vemaflow/                    # Backend Spring Boot
+VeimaFlow/
+├── VEIMAFLOW-BACK/                    # Backend Spring Boot
 │   ├── src/main/java/           # Código Java
 │   ├── src/main/resources/      # application.properties
 │   ├── pom.xml                  # Dependências Maven
 │   └── mvnw.cmd                 # Maven Wrapper (Windows)
 │
-├── VEIMANFLOW/                  # Frontend React + Vite
+├── VEIMAFLOW-FRONT/                  # Frontend React + Vite
 │   ├── src/                     # Código React
 │   ├── package.json             # Dependências npm
 │   └── vite.config.js           # Config Vite + proxy
